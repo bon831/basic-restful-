@@ -1,4 +1,5 @@
 const express = require('express')
+const jwt = require('jsonwebtoken')
 const app = express()
 const port = 3000 
 
@@ -28,9 +29,11 @@ app.use(express.json());
 
 app.post('/login', (req, res) => {
   let data = req.body
-  res.send(
-    login(data.username, data.password)
-  )
+  // res.send(
+  //   login(data.username, data.password)
+  // )
+  const user = login(data.username, data.password);
+  res.send(generateToken(user))
 })
 
 app.post('/register', (req, res) => {
@@ -43,6 +46,12 @@ app.post('/register', (req, res) => {
       data.email
     )
   )
+})
+
+app.get('/hello', verifyToken, (req, res) => {
+  console.log(req.user)
+
+  res.send('Token is verified!')
 })
 
 app.get('/', (req, res) => {
@@ -119,5 +128,26 @@ function register(newusername, newpassword, newname, newemail) {
       })
       return "new account has been created"
   }
-  
+}
+
+// to generate JWT token
+function generateToken(userProfile) {
+  return jwt.sign({userProfile},'secret',{expiresIn: 60*60})
+  }
+
+// to verify token
+function verifyToken(req, res, next) {
+  let header = req.headers.authorization
+  console.log(header)
+
+  let token = header.split(' ')[1]
+
+  jwt.verify(token, 'secret', function(err, decoded) {
+    if(err) {
+      res.send("Invalid Token")
+    }
+
+    req.user = decoded
+    next()
+  });
 }
